@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Smart Attendance System</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background: linear-gradient(135deg, #11b8cb, #2582fc);
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .card {
+    background: rgba(0,0,0,0.6);
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    text-align: center;
+    width: 320px;
+  }
+  #studentCard, #teacherCard, #adminCard {
+    display: none;
+    width: 700px;
+    text-align: left;
+  }
+  h1, h2 {
+    color: #ffd700;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  select, input, button, textarea {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border-radius: 8px;
+    border: none;
+    font-size: 16px;
+  }
+  button {
+    background: #ff9800;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  button:hover {
+    background: #e68900;
+  }
+  .error {
+    color: #ff5722;
+    font-weight: bold;
+    margin-top: 10px;
+  }
+  label {
+    display: block;
+    margin-top: 10px;
+    font-weight: bold;
+    text-align: left;
+  }
+  #attendanceStatus, #attendanceAlert, #attendanceProgress {
+    margin-top: 15px;
+    font-weight: bold;
+  }
+  #attendanceAlert {
+    color: #ff5722;
+  }
+  #logoutBtn {
+    background: #f44336;
+    margin-top: 30px;
+    width: 100%;
+    font-size: 18px;
+  }
+  canvas {
+    background: #fff;
+    border-radius: 8px;
+    margin-top: 20px;
+    padding: 10px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  table {
+    width: 100%;
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+  th, td {
+    padding: 10px;
+    border: 1px solid #444;
+    text-align: center;
+  }
+  .hidden {
+    display: none;
+  }
+  .photo-thumb {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+  <!-- Login Section -->
+  <div id="loginCard" class="card">
+    <h2>Smart Attendance System</h2>
+    <label for="roleSelect">Select Role</label>
+    <select id="roleSelect" onchange="updateForm()">
+      <option value="student">👩‍🎓 Student</option>
+      <option value="teacher">👨‍🏫 Teacher</option>
+      <option value="admin">🛠️ Admin</option>
+    </select>
+
+    <div id="studentTeacherFields">
+      <label for="userId">User ID</label>
+      <input type="text" id="userId" placeholder="Enter User ID" autocomplete="off" />
+      <label for="userName">Name</label>
+      <input type="text" id="userName" placeholder="Enter Name" autocomplete="off" />
+      <label for="userClass">Class</label>
+      <input type="text" id="userClass" placeholder="Enter Class" autocomplete="off" />
+    </div>
+
+    <div id="adminFields" class="hidden">
+      <label for="adminUserId">User ID</label>
+      <input type="text" id="adminUserId" placeholder="Enter User ID" autocomplete="off" />
+      <label for="adminPassword">Password</label>
+      <input type="password" id="adminPassword" placeholder="Enter Password" autocomplete="off" />
+    </div>
+
+    <button onclick="login()">Login</button>
+    <p id="errorMsg" class="error" style="display:none;"></p>
+  </div>
+
+  <!-- Student Dashboard Section -->
+  <div id="studentCard" class="card" style="width: 700px;">
+    <h2>Student Dashboard</h2>
+    <div>
+      <p><strong>User ID:</strong> <span id="displayId"></span></p>
+      <p><strong>Name:</strong> <span id="displayName"></span></p>
+      <p><strong>Class:</strong> <span id="displayClass"></span></p>
+    </div>
+
+    <button id="scanQRBtn">📷 Scan QR Code (Simulate)</button>
+    <button id="takePhotoBtn">😀 Take Photo</button>
+    <button id="checkLocationBtn">📡 Check Location</button>
+
+    <p id="attendanceStatus">Attendance status will appear here.</p>
+    <p id="attendanceAlert" style="display:none;"></p>
+    <p id="attendanceProgress"></p>
+
+    <canvas id="attendanceChart" width="400" height="200"></canvas>
+
+    <button id="logoutBtnStudent">Logout</button>
+  </div>
+
+  <!-- Teacher Dashboard Section -->
+  <div id="teacherCard" class="card" style="width: 700px;">
+    <h2>Teacher Dashboard</h2>
+    <div>
+      <p><strong>User ID:</strong> <span id="teacherIdDisplay"></span></p>
+      <p><strong>Name:</strong> <span id="teacherNameDisplay"></span></p>
+      <p><strong>Class:</strong> <span id="teacherClassDisplay"></span></p>
+    </div>
+
+    <h3>Generate QR Code for Session</h3>
+    <label for="sessionInput">Session Name/ID</label>
+    <input type="text" id="sessionInput" placeholder="Enter Session ID" />
+    <button id="generateQRBtn">Generate QR Code</button>
+    <div id="qrCodeContainer" style="text-align:center; margin-top: 10px;"></div>
+
+    <h3>Attendance Records</h3>
+    <table id="attendanceRecordsTable">
+      <thead>
+        <tr>
+          <th>Student ID</th>
+          <th>Name</th>
+          <th>Class</th>
+          <th>Session</th>
+          <th>Date/Time</th>
+          <th>Method</th>
+          <th>GPS Match</th>
+          <th>Photo</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <button id="logoutBtnTeacher">Logout</button>
+  </div>
+
+  <!-- Admin Dashboard Section -->
+  <div id="adminCard" class="card" style="width: 700px;">
+    <h2>Admin Dashboard</h2>
+
+    <h3>Add New User</h3>
+    <label for="newUserRole">Role</label>
+    <select id="newUserRole">
+      <option value="student">Student</option>
+      <option value="teacher">Teacher</option>
+      <option value="admin">Admin</option>
+    </select>
+    <label for="newUserId">User ID</label>
+    <input type="text" id="newUserId" placeholder="Enter User ID" />
+    <label for="newUserName">Name</label>
+    <input type="text" id="newUserName" placeholder="Enter Name" />
+    <label for="newUserClass" id="newUserClassLabel">Class (if student/teacher)</label>
+    <input type="text" id="newUserClass" placeholder="Enter Class" />
+    <label for="newUserPassword">Password</label>
+    <input type="text" id="newUserPassword" placeholder="Enter Password" />
+
+    <button id="addUserBtn">Add User</button>
+    <p id="addUserMsg" class="error" style="display:none;"></p>
+
+    <h3>Existing Users</h3>
+    <table id="usersTable">
+      <thead>
+        <tr><th>User ID</th><th>Name</th><th>Role</th><th>Class</th><th>Action</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <button id="logoutBtnAdmin">Logout</button>
+  </div>
+
+  <!-- Include QR Code library (for QR generation) -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
+  <script>
+    // Initialize data if not present
+    if (!localStorage.getItem('smartAttendanceData')) {
+      const initialData = {
+        users: [
+          {id: 'Maitree', password: '001', name: 'Admin Maitree', role: 'admin'},
+          {id: 'TEA001', password: 'teachpass', name: 'Mr. Sharma', role: 'teacher', class: '10A'},
+          {id: 'STU001', password: 'studpass', name: 'Aisha Khan', role: 'student', class: '10A'},
+          {id: 'STU002', password: 'studpass', name: 'Rohan Mehta', role: 'student', class: '10B'}
+        ],
+        attendance: [],
+        sessions: [] // To store session info by teacher (sessionId + location)
+      };
+      localStorage.setItem('smartAttendanceData', JSON.stringify(initialData));
+    }
+
+    // Constants
+    const attendanceThreshold = 0.75;
+    const totalSessions = 20; // For demo
+    const defaultClassroomLat = 40.7128; // Default fallback location
+    const defaultClassroomLng = -74.0060;
+
+    // State variables
+    let loggedInUser = null;
+    let sessionName = null;
+    let photoTaken = false;
+    let locationVerified = false;
+    let currentSessionLocation = null; // For teacher sessions
+
+    // Update form on role change
+    function updateForm() {
+      const role = document.getElementById('roleSelect').value;
+      if (role === 'admin') {
+        document.getElementById('studentTeacherFields').classList.add('hidden');
+        document.getElementById('adminFields').classList.remove('hidden');
+      } else {
+        document.getElementById('studentTeacherFields').classList.remove('hidden');
+        document.getElementById('adminFields').classList.add('hidden');
+      }
+      clearError();
+      clearInputs();
+      if (role === 'teacher' || role === 'student') {
+        document.getElementById('userClass').disabled = (role ===
